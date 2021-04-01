@@ -1,6 +1,5 @@
 # How to convert raw count Data to TPM format
 
-# convert raw counts to tpm
 #please see use the following script as an example to convert raw counts to tpm
 #download from https://www.ensembl.org/info/data/ftp/index.html choose 
 #human>>sequence (GenBank)	Gene sets "GTF">>File: Homo_sapiens.GRCh38.99.gtf.gz
@@ -36,7 +35,7 @@ dataFilt.brca.mat <-dplyr::inner_join(as.data.frame(dataFilt.brca) %>%
 # gene annotation
 ensembl = useMart("ENSEMBL_MART_ENSEMBL",dataset="mmusculus_gene_ensembl", host="uswest.ensembl.org")
 
-# 'mgi_symbol' => 'external_gene_name'
+#'mgi_symbol' => 'external_gene_name'
 bioM.res<-getBM(attributes=c('ensembl_gene_id','mgi_symbol','description','gene_biotype'), 
                 filters = 'ensembl_gene_id', values = rownames(dataFilt.brca) , mart = ensembl)
 dim(bioM.res) 
@@ -44,7 +43,8 @@ dim(bioM.res)
 dataFilt.brca.mat.anno<-cbind(bioM.res[match(dataFilt.brca.mat$gene_id, bioM.res$ensembl_gene_id),],dataFilt.brca.mat)
 head(dataFilt.brca.mat.anno)
 
-# create a TPM matrix by dividing each column of the counts matrix by the estimatation of the gene length 
+# create a TPM matrix 
+#by dividing each column of the counts matrix by the estimatation of the gene length 
 x <- dataFilt.brca.mat[,colnames(dataFilt.brca)] /dataFilt.brca.mat[,"max.tx_len"]
 
 # sum to 1 million.
@@ -80,7 +80,7 @@ dataFilt.brca.mat <-dplyr::inner_join(as.data.frame(dataFilt.brca) %>%
 ###gene annotation
 ensembl = useMart("ENSEMBL_MART_ENSEMBL",dataset="hsapiens_gene_ensembl", host="uswest.ensembl.org")
 
-##### 'mgi_symbol' => 'external_gene_name'
+#####'mgi_symbol' => 'external_gene_name'
 bioM.res<-getBM(attributes=c('ensembl_gene_id','hgnc_symbol','description','gene_biotype'), 
                 filters = 'ensembl_gene_id', values = rownames(dataFilt.brca) , mart = ensembl)
 dim(bioM.res) 
@@ -115,7 +115,7 @@ attributes = listAttributes(ensembl)
 
 
 
-#already have gene length
+# already have gene length
 #if we already have gene length, we can use it directly rather than download it from makeTxDbFromGRanges()
 setwd("/Users/birongzhang/Desktop/GSE")
 data <- read.table("counts.csv", sep=",", header=TRUE, row.names = 1)
@@ -143,9 +143,11 @@ write.csv(data.anno1, "raw.count.anno_remove duplicated symbol.csv")
 
 dataFilt.brca<- data.anno
 dataFilt.brca<- data.anno1
+
 #create a TPM matrix by dividing each column of the counts matrix by the estimatation of the gene length 
 x <- dataFilt.brca[,c(5:12)] /dataFilt.brca[,4] 
-# sum to 1 million.
+
+#sum to 1 million.
 tpm.mat <- t( t(x) * 1e6 / colSums(x) )
 dim(tpm.mat)
 
