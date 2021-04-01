@@ -1,0 +1,161 @@
+###########################convert raw counts to tpm############################
+###please see use the following script as an example to convert raw counts to tpm
+# download from https://www.ensembl.org/info/data/ftp/index.html choose 
+#human>>sequence (GenBank)	Gene sets "GTF">>File: Homo_sapiens.GRCh38.99.gtf.gz
+
+library(rtracklayer)
+library(AnnotationDbi)
+library(GenomicFeatures)
+library(tidyverse)
+library(biomaRt)
+
+setwd("/Users/birongzhang/Desktop/GSE")
+dataFilt.brca <- read.table("counts.csv", sep=",", header=TRUE, row.names = 1)
+dataFilt.brca[1:3,1:3]
+
+
+# Mouse
+#Read the genes from the GTP files
+txdb <-makeTxDbFromGRanges(import("/Users/birongzhang/Downloads/reference/Mus_musculus.GRCm39.103.gtf"))
+
+#Export the transcript lengths for all the transcripts
+allTranscripts <- transcriptLengths(txdb)
+
+allGeneIDs <- unique(allTranscripts$gene_id)
+allGeneLengths <- as.data.frame(allTranscripts %>%
+                                  dplyr::group_by(gene_id) %>%
+                                  dplyr::summarize(max.tx_len = max(tx_len)))
+
+dataFilt.brca.mat <-dplyr::inner_join(as.data.frame(dataFilt.brca) %>%
+                                      mutate(gene_id = rownames(as.data.frame(dataFilt.brca))),
+                                      allGeneLengths,
+                                      by = 'gene_id')
+
+###gene annotation
+ensembl = useMart("ENSEMBL_MART_ENSEMBL",dataset="mmusculus_gene_ensembl", host="uswest.ensembl.org")
+
+##### 'mgi_symbol' => 'external_gene_name'
+bioM.res<-getBM(attributes=c('ensembl_gene_id','mgi_symbol','description','gene_biotype'), 
+                filters = 'ensembl_gene_id', values = rownames(dataFilt.brca) , mart = ensembl)
+dim(bioM.res) 
+
+dataFilt.brca.mat.anno<-cbind(bioM.res[match(dataFilt.brca.mat$gene_id, bioM.res$ensembl_gene_id),],dataFilt.brca.mat)
+head(dataFilt.brca.mat.anno)
+
+#create a TPM matrix by dividing each column of the counts matrix by the estimatation of the gene length 
+x <- dataFilt.brca.mat[,colnames(dataFilt.brca)] /dataFilt.brca.mat[,"max.tx_len"]
+
+# sum to 1 million.
+tpm.mat <- t( t(x) * 1e6 / colSums(x) )
+rownames(tpm.mat)<-dataFilt.brca.mat.anno[,"mgi_symbol"]
+tpm.mat <- tpm.mat %>% data.frame()  
+dim(tpm.mat)
+write.csv(tpm.mat, "dataFilt.brca.TPM.csv")
+
+# remove duplicated gene
+tpm.mat1<-tpm.mat[!duplicated(rownames(tpm.mat)),] 
+tpm.mat2<-tpm.mat[!duplicated(tpm.mat$mgi_symbol),] 
+
+
+
+# Human
+#Read the genes from the GTP files
+txdb <-makeTxDbFromGRanges(import("/Users/birongzhang/Downloads/reference/Homo_sapiens.GRCh38.102.gtf"))
+
+#Export the transcript lengths for all the transcripts
+allTranscripts <- transcriptLengths(txdb)
+
+allGeneIDs <- unique(allTranscripts$gene_id)
+allGeneLengths <- as.data.frame(allTranscripts %>%
+                                  dplyr::group_by(gene_id) %>%
+                                  dplyr::summarize(max.tx_len = max(tx_len)))
+
+dataFilt.brca.mat <-dplyr::inner_join(as.data.frame(dataFilt.brca) %>%
+                                      mutate(gene_id = rownames(as.data.frame(dataFilt.brca))),
+                                      allGeneLengths,
+                                      by = 'gene_id')
+
+###gene annotation
+ensembl = useMart("ENSEMBL_MART_ENSEMBL",dataset="hsapiens_gene_ensembl", host="uswest.ensembl.org")
+
+##### 'mgi_symbol' => 'external_gene_name'
+bioM.res<-getBM(attributes=c('ensembl_gene_id','hgnc_symbol','description','gene_biotype'), 
+                filters = 'ensembl_gene_id', values = rownames(dataFilt.brca) , mart = ensembl)
+dim(bioM.res) 
+
+dataFilt.brca.mat.anno<-cbind(bioM.res[match(dataFilt.brca.mat$gene_id, bioM.res$ensembl_gene_id),],dataFilt.brca.mat)
+head(dataFilt.brca.mat.anno)
+
+#create a TPM matrix by dividing each column of the counts matrix by the estimatation of the gene length 
+x <- dataFilt.brca.mat[,colnames(dataFilt.brca)] /dataFilt.brca.mat[,"max.tx_len"]
+
+# sum to 1 million.
+tpm.mat <- t( t(x) * 1e6 / colSums(x) )
+rownames(tpm.mat)<-dataFilt.brca.mat.anno[,"mgi_symbol"]
+tpm.mat <- tpm.mat %>% data.frame()  
+dim(tpm.mat)
+write.csv(tpm.mat, "dataFilt.brca.TPM.csv")
+
+# remove duplicated gene
+tpm.mat1<-tpm.mat[!duplicated(rownames(tpm.mat)),] 
+tpm.mat2<-tpm.mat[!duplicated(tpm.mat$mgi_symbol),] 
+
+
+# small tips
+#1. for human and mouse, we need to change different database in useMart(), we can do this by the following command
+??useMart
+mart = useMart('ensembl')
+listDatasets(mart)
+
+
+#2.for human and mouse, we need to change different attributes in getBM()
+attributes = listAttributes(ensembl)
+
+
+
+#####if we already have gene length, we can use it directly rather than download it from makeTxDbFromGRanges()
+setwd("/Users/birongzhang/Desktop/GSE")
+data <- read.table("counts.csv", sep=",", header=TRUE, row.names = 1)
+head(rownames(data))
+
+###gene annotation
+ensembl = useMart("ENSEMBL_MART_ENSEMBL",dataset="mmusculus_gene_ensembl", host="uswest.ensembl.org")
+attributes = listAttributes(ensembl)
+bioM.res<-getBM(attributes=c('ensembl_gene_id','mgi_symbol','gene_biotype'), 
+                filters = 'ensembl_gene_id', values = rownames(data) , mart = ensembl)
+
+bioM.res<-getBM(attributes=c('ensembl_gene_id','external_gene_name','description','gene_biotype'), 
+                filters = 'ensembl_gene_id', values = rownames(data) , mart = ensembl)
+
+dim(bioM.res) 
+
+data.anno<-cbind(bioM.res[match(rownames(data), bioM.res$ensembl_gene_id),],data)
+head(data.anno)
+write.csv(data.anno, "raw.count.anno.csv")
+dim(data.anno)
+
+data.anno1<-data.anno[!duplicated(data.anno$mgi_symbol),] #52217 12
+dim(data.anno1)
+write.csv(data.anno1, "raw.count.anno_remove duplicated symbol.csv")
+
+dataFilt.brca<- data.anno
+dataFilt.brca<- data.anno1
+#create a TPM matrix by dividing each column of the counts matrix by the estimatation of the gene length 
+x <- dataFilt.brca[,c(5:12)] /dataFilt.brca[,4] 
+# sum to 1 million.
+tpm.mat <- t( t(x) * 1e6 / colSums(x) )
+dim(tpm.mat)
+
+tpm.mat.anno <- cbind(dataFilt.brca[,c(1:4)],tpm.mat)
+
+write.csv(tpm.mat.anno, "tpm.mat.anno.csv")
+write.csv(tpm.mat.anno, "tpm.mat.anno_remove duplicated symbol.csv")
+
+
+dim(tpm.mat.anno1)
+write.csv(tpm.mat.anno1, "tpm.mat.anno_remove duplicated symbol.csv")
+
+tpm.mat.anno2<-tpm.mat.anno[!duplicated(tpm.mat.anno$ensembl_gene_id),] #52217 12
+dim(tpm.mat.anno2)
+
+
