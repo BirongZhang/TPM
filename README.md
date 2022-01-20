@@ -1,7 +1,8 @@
 # convert raw counts to tpm
-###########################convert raw counts to tpm############################
-###please see use the following script as an example to convert raw counts to tpm
-##https://mp.weixin.qq.com/s?__biz=MzAxMDkxODM1Ng==&mid=2247508798&idx=1&sn=3fbbc1c173aa188db4e80de257ffb861&chksm=9b4be385ac3c6a9318426b1f2eef05550a330578d0a5060d520e185fbe027f0b961e6f947592&scene=178&cur_album_id=2035227969870168066#rd
+#please see use the following script as an example to convert raw counts to tpm
+#https://mp.weixin.qq.com/sbiz=MzAxMDkxODM1Ng==&mid=2247508798&idx=1&sn=3fbbc1c173aa188db4e80de257ffb861&chksm=9b4be385ac3c6a9318426b1f2eef05550a330578d0a5060d520e185fbe027f0b961e6f947592&scene=178&cur_album_id=2035227969870168066#rd
+#http://www.bio-info-trainee.com/956.html
+#https://www.ensembl.org/info/data/ftp/index.html 
 
 # set up 
 library(rtracklayer)
@@ -12,23 +13,22 @@ library(biomaRt)
 library(dplyr)
 
 # human
-############## human ############## 
-#####export counts data 56602
+#export counts data 56602
 counts<- read.csv("clin_counts.csv",row.names=1,check.names =F) #
-###gene annotation
+#gene annotation
 ensembl <-  useMart("ENSEMBL_MART_ENSEMBL",dataset="hsapiens_gene_ensembl", host="uswest.ensembl.org")
 attributes <-  listAttributes(ensembl)
 
-#####'hgnc_symbol','entrezgene_id'
+#'hgnc_symbol','entrezgene_id'
 bioM.res<-getBM(attributes=c('ensembl_gene_id','hgnc_symbol','description','gene_biotype','entrezgene_id'), 
                 filters = 'ensembl_gene_id', values = rownames(counts) , mart = ensembl)
 dim(bioM.res) 
 
-########combine raw counts data and gene annotation
+#combine raw counts data and gene annotation
 counts.anno<-cbind(bioM.res[match(rownames(counts), bioM.res$ensembl_gene_id),],counts)
 counts.anno[1:3,1:3]
 
-##Human:  transcript lengths form UCSC exon
+#Human:  transcript lengths form UCSC exon
 BiocManager::install('TxDb.Hsapiens.UCSC.hg38.knownGene')
 library("TxDb.Hsapiens.UCSC.hg38.knownGene")
 
@@ -44,8 +44,6 @@ if(!file.exists('gene_length.Rdata')){
   t2=genes_txdb[subjectHits(o)]
   t1=as.data.frame(t1)
   t1$geneid=mcols(t2)[,1]
-  
-  # http://www.bio-info-trainee.com/956.html
   g_l = lapply(split(t1,t1$geneid),function(x){
     # x=split(t1,t1$geneid)[[1]]
     head(x)
@@ -120,10 +118,9 @@ write.csv(tpm.mat, "TPM_counts_gtf_symbol.csv")
 
 
 # mouse
-############## mouse ############## 
-##export raw counts data 56602
+#export raw counts data 56602
 counts<- read.csv("clin_counts.csv",row.names=1,check.names =F) #
-###gene annotation
+#gene annotation
 ensembl = useMart("ENSEMBL_MART_ENSEMBL",dataset="mmusculus_gene_ensembl", host="uswest.ensembl.org")
 #attributes = listAttributes(ensembl)
 
@@ -131,11 +128,11 @@ bioM.res<-getBM(attributes=c('ensembl_gene_id','mgi_symbol','gene_biotype', 'ent
                 filters = 'ensembl_gene_id', values = rownames(counts) , mart = ensembl)
 dim(bioM.res) 
 
-######## combine raw counts data and gene annotation
+#combine raw counts data and gene annotation
 counts.anno<-cbind(bioM.res[match(rownames(counts), bioM.res$ensembl_gene_id),],counts)
 counts.anno[1:3,1:3]
 
-##Export the transcript lengths form UCSC
+#Export the transcript lengths form UCSC
 BiocManager::install('TxDb.Mmusculus.UCSC.mm10.knownGene')
 library("TxDb.Mmusculus.UCSC.mm10.knownGene")
 
@@ -151,8 +148,6 @@ if(!file.exists('gene_length.Rdata')){
   t2=genes_txdb[subjectHits(o)]
   t1=as.data.frame(t1)
   t1$geneid=mcols(t2)[,1]
-  
-  # http://www.bio-info-trainee.com/956.html
   g_l = lapply(split(t1,t1$geneid),function(x){
     # x=split(t1,t1$geneid)[[1]]
     head(x)
@@ -194,20 +189,20 @@ gene_length[1:3,1:2]
 
 
 
-##combine count_anno and genelength 22922
+#combine count_anno and genelength 22922
 counts_length <- merge(gene_length, counts.anno, by = "ensembl_gene_id")
 counts_length[1:3,1:6]
 
 #create a TPM matrix by dividing each column of the counts matrix by the estimatation of the gene length 
 x <- counts_length[,colnames(counts)] /counts_length[,"length"]
-# sum to 1 million.
+#sum to 1 million.
 tpm.mat <- t( t(x) * 1e6 / colSums(x) )
 #check it again
 head(colSums(tpm.mat))
 tpm.mat <- tpm.mat %>% data.frame()  
 dim(tpm.mat)
 
-##add annoatation information
+#add annoatation information
 tpm.mat$ensembl_gene_id <- counts_length$ensembl_gene_id
 tpm.mat$mgi_symbol<- counts_length$mgi_symbol
 tpm.mat$entrezgene_id <- counts_length$entrezgene_id
@@ -240,18 +235,12 @@ rm(keep.exprs)
 tpm.mat.filtered[1:4,1:4]
 
 # TPM boxplot
-#--------------------TPM boxplot---------------#
-################################################
-############## normalize.quantiles #############
-################################################
-par(mfrow=c(1,1));
-#unnormalised
 boxplot(log2(tpm.mat.filtered+1),xlab="",ylab="Log2 transcript per million unnormalised",las=2,outline = F)
 #Let's add a blue horizontal line that corresponds to the median log2TPM
 abline(h=median(log2(tpm.mat.filtered+1)),col="blue")
 title("Boxplots of log2TPM (unnormalised)")
 
-#TPM normalised
+# TPM normalised
 BiocManager::install("preprocessCore")
 library(preprocessCore)
 tpm.mat.norm<- normalize.quantiles(log2(tpm.mat.filtered+1));
