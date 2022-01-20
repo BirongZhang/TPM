@@ -1,8 +1,10 @@
 # convert raw counts to tpm
+```
 #please see use the following script as an example to convert raw counts to tpm
 #https://mp.weixin.qq.com/sbiz=MzAxMDkxODM1Ng==&mid=2247508798&idx=1&sn=3fbbc1c173aa188db4e80de257ffb861&chksm=9b4be385ac3c6a9318426b1f2eef05550a330578d0a5060d520e185fbe027f0b961e6f947592&scene=178&cur_album_id=2035227969870168066#rd
 #http://www.bio-info-trainee.com/956.html
 #https://www.ensembl.org/info/data/ftp/index.html 
+```
 
 # set up 
 ```
@@ -264,6 +266,7 @@ save(tpm.mat.norm,file = "tpm.mat_norm.Rdata")
 ```
 
 # small tips
+```
 #1. for human and mouse, we need to change different database in useMart(), we can do this by the following command
 ??useMart
 mart = useMart('ensembl')
@@ -287,5 +290,5 @@ colnames(genelength) <- c("hgnc_symbol","length")
 
 #4. remove duplicated
 genelength<-genelength[!duplicated(genelength$hgnc_symbol),] 
-
+```
 
