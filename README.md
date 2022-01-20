@@ -5,14 +5,17 @@
 #https://www.ensembl.org/info/data/ftp/index.html 
 
 # set up 
+```
 library(rtracklayer)
 library(AnnotationDbi)
 library(GenomicFeatures)
 library(tidyverse)
 library(biomaRt)
 library(dplyr)
+```
 
 # human
+```
 #export counts data 56602
 counts<- read.csv("clin_counts.csv",row.names=1,check.names =F) #
 #gene annotation
@@ -112,12 +115,13 @@ tpm.mat2<-tpm.mat[!duplicated(tpm.mat$hgnc_symbol),]
 rownames(tpm.mat2) <- tpm.mat2$hgnc_symbol
 tpm.mat2[1:3,1:3]
 write.csv(tpm.mat, "TPM_counts_gtf_symbol.csv")
-
+```
 
 
 
 
 # mouse
+```
 #export raw counts data 56602
 counts<- read.csv("clin_counts.csv",row.names=1,check.names =F) #
 #gene annotation
@@ -233,14 +237,18 @@ summary(keep)
 tpm.mat.filtered <- tpm.mat[keep,]
 rm(keep.exprs)
 tpm.mat.filtered[1:4,1:4]
+```
 
 # TPM boxplot
+```
 boxplot(log2(tpm.mat.filtered+1),xlab="",ylab="Log2 transcript per million unnormalised",las=2,outline = F)
 #Let's add a blue horizontal line that corresponds to the median log2TPM
 abline(h=median(log2(tpm.mat.filtered+1)),col="blue")
 title("Boxplots of log2TPM (unnormalised)")
+```
 
 # TPM normalised
+```
 BiocManager::install("preprocessCore")
 library(preprocessCore)
 tpm.mat.norm<- normalize.quantiles(log2(tpm.mat.filtered+1));
@@ -253,7 +261,7 @@ title("Boxplots of log2TPM (normalised)")
 write.table(tpm.mat.filtered,file = "tpm.mat_filtered.txt",quote = FALSE,sep = "\t")
 write.table(tpm.mat.norm,file = "tpm.mat_norm.txt",quote = FALSE,sep = "\t")
 save(tpm.mat.norm,file = "tpm.mat_norm.Rdata")
-
+```
 
 # small tips
 #1. for human and mouse, we need to change different database in useMart(), we can do this by the following command
